@@ -3,21 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR Interior Pro - iPhone Stable</title>
+    <title>AR Interior Pro - Fixed Scale</title>
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
     <style>
         body { margin: 0; background: #1a1a1a; color: white; font-family: sans-serif; }
-        .header { padding: 15px; text-align: center; background: #333; }
+        .header { padding: 15px; text-align: center; background: #333; font-weight: bold; }
         
-        /* Khu vực hiển thị 3D */
         model-viewer { 
             width: 100%; 
-            height: 70vh; 
+            height: 75vh; 
             background: #222;
-            --ar-button-display: none; /* Ẩn nút AR mặc định để dùng nút tự chế */
+            --ar-button-display: none;
         }
 
-        /* Bảng điều khiển */
         .controls {
             padding: 15px;
             display: flex;
@@ -39,17 +37,15 @@
         
         .btn-ar { 
             background: #28a745; color: white; width: 100%; 
-            font-size: 16px; margin-top: 5px; 
+            font-size: 16px; margin-top: 5px; box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
         }
 
-        .hint { font-size: 12px; color: #aaa; text-align: center; margin-top: 5px; }
+        .hint { font-size: 11px; color: #888; text-align: center; margin-top: 5px; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <strong>THIẾT KẾ NỘI THẤT AR</strong>
-    </div>
+    <div class="header">THIẾT KẾ NỘI THẤT</div>
 
     <model-viewer 
         id="ar-view"
@@ -59,13 +55,16 @@
         camera-controls 
         shadow-intensity="1"
         ar-placement="floor"
+        /* Chỉnh tỉ lệ ở đây: 0.01 nghĩa là nhỏ đi 100 lần so với file gốc */
+        scale="0.01 0.01 0.01"
+        auto-rotate
+        camera-orbit="0deg 75deg 105%"
         touch-action="pan-y">
         
         <button slot="ar-button" style="display:none;"></button> 
     </model-viewer>
 
     <div class="controls">
-        <div class="hint">Chọn món đồ bạn muốn xem trong phòng:</div>
         <div class="row">
             <button class="btn-item active" onclick="selectItem('ghe.glb', this)">🪑 Ghế</button>
             <button class="btn-item" onclick="selectItem('ban.glb', this)">📦 Bàn</button>
@@ -74,37 +73,29 @@
         </div>
 
         <button class="btn-ar" onclick="startAR()">🚀 XEM TRONG PHÒNG (AR)</button>
-        
-        <div class="hint">Trong AR: Dùng 1 ngón di chuyển, 2 ngón để xoay/nâng</div>
+        <div class="hint">Mẹo: Nếu đồ vẫn to, hãy dùng 2 ngón tay thu nhỏ lại trong AR</div>
     </div>
 
     <script>
         const modelViewer = document.querySelector("#ar-view");
 
-        // Hàm đổi đồ vật
         function selectItem(file, btn) {
-            // Đổi nguồn file 3D
             modelViewer.src = file;
             
-            // Đổi hiệu ứng nút bấm
+            // Đảm bảo mỗi khi đổi đồ, scale luôn được giữ ở mức nhỏ
+            modelViewer.setAttribute('scale', '0.01 0.01 0.01');
+
             document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
         }
 
-        // Hàm kích hoạt AR chuẩn iPhone (Quick Look)
         function startAR() {
             modelViewer.activateAR();
         }
-
-        // Lắng nghe sự kiện click để hỗ trợ chọn vật thể (giả lập)
-        modelViewer.addEventListener('click', (event) => {
-            if (modelViewer.canActivateAR) {
-                console.log("Sẵn sàng cho AR");
-            }
-        });
     </script>
 </body>
 </html>
+
 
 
 
