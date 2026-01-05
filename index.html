@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR Interior Pro - Fixed Scale</title>
+    <title>AR Interior - Natural Scale</title>
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
     <style>
         body { margin: 0; background: #1a1a1a; color: white; font-family: sans-serif; }
@@ -54,11 +54,11 @@
         ar-modes="quick-look webxr scene-viewer" 
         camera-controls 
         shadow-intensity="1"
+        /* 1. Quan trọng: ar-placement="floor" giúp bám sàn */
         ar-placement="floor"
-        /* Chỉnh tỉ lệ ở đây: 0.01 nghĩa là nhỏ đi 100 lần so với file gốc */
-        scale="0.01 0.01 0.01"
-        auto-rotate
-        camera-orbit="0deg 75deg 105%"
+        /* 2. Xóa bỏ hoàn toàn scale thủ công để máy tự tính toán theo thực tế */
+        /* 3. Thêm tính năng chạm để tập trung vào sàn */
+        interaction-prompt="auto"
         touch-action="pan-y">
         
         <button slot="ar-button" style="display:none;"></button> 
@@ -73,7 +73,7 @@
         </div>
 
         <button class="btn-ar" onclick="startAR()">🚀 XEM TRONG PHÒNG (AR)</button>
-        <div class="hint">Mẹo: Nếu đồ vẫn to, hãy dùng 2 ngón tay thu nhỏ lại trong AR</div>
+        <div class="hint">Lia máy xuống sàn cho đến khi vật thể hiện ra</div>
     </div>
 
     <script>
@@ -81,10 +81,6 @@
 
         function selectItem(file, btn) {
             modelViewer.src = file;
-            
-            // Đảm bảo mỗi khi đổi đồ, scale luôn được giữ ở mức nhỏ
-            modelViewer.setAttribute('scale', '0.01 0.01 0.01');
-
             document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
         }
@@ -95,6 +91,7 @@
     </script>
 </body>
 </html>
+
 
 
 
