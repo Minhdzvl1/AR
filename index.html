@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Game AR Nội Thất - Joystick</title>
+    <title>Game AR Nội Thất - Joystick Roblox Style</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.9.0/nipplejs.min.js"></script>
     <style>
@@ -14,21 +14,21 @@
         }
         button {
             padding: 12px 20px; border-radius: 25px; border: none;
-            background: #007bff; color: white; font-weight: bold;
+            background: #007bff; color: white; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
         }
+        /* Vùng chứa Joystick */
         #joystick-zone {
-            position: absolute; bottom: 50px; left: 50px;
-            width: 120px; height: 120px; z-index: 20;
-            display: none; /* Chỉ hiện trong AR */
+            position: absolute; bottom: 40px; left: 40px;
+            width: 150px; height: 150px; z-index: 100;
         }
         #ar-instructions {
             position: absolute; top: 10px; width: 100%; text-align: center;
-            color: white; background: rgba(0,0,0,0.5); z-index: 5; padding: 5px 0;
+            color: white; background: rgba(0,0,0,0.5); z-index: 5; padding: 8px 0;
         }
     </style>
 </head>
 <body>
-    <div id="ar-instructions">Hãy nhấn "Bắt đầu AR" và đưa máy quét sàn nhà</div>
+    <div id="ar-instructions">1. Bấm START AR -> 2. Quét sàn (tìm vòng tròn) -> 3. Thêm đồ & Di chuyển</div>
     
     <div id="ui-container">
         <button onclick="addObject('ghe.glb')"> + Ghế</button>
@@ -41,23 +41,22 @@
         import { ARButton } from 'https://unpkg.com/three@0.128.0/examples/jsm/webxr/ARButton.js';
         import { GLTFLoader } from 'https://unpkg.com/three@0.128.0/examples/jsm/loaders/GLTFLoader.js';
 
-        let container, scene, camera, renderer, controller, reticle;
-        let loader = new GLTFLoader();
-        let currentModel = null;
-        let hitTestSource = null;
-        let hitTestSourceRequested = false;
+        let scene, camera, renderer, reticle, controller;
+        let moveForward = 0, moveSides = 0;
+        const speed = 0.03; // Tốc độ di chuyển nhân vật
+        const loader = new GLTFLoader();
 
         init();
         animate();
 
         function init() {
-            container = document.createElement('div');
+            const container = document.createElement('div');
             document.body.appendChild(container);
 
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
 
-            let light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+            const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
             scene.add(light);
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -66,55 +65,56 @@
             renderer.xr.enabled = true;
             container.appendChild(renderer.domElement);
 
-            // Thêm nút Bắt đầu AR
+            // Nút bắt đầu AR
             document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
 
-            // Tạo tâm ngắm (Reticle) để biết điểm đặt đồ
+            // Tâm ngắm (Reticle)
             reticle = new THREE.Mesh(
-                new THREE.RingGeometry(0.15, 0.2, 32).rotateX(-Math.PI / 2),
-                new THREE.MeshBasicMaterial()
+                new THREE.RingGeometry(0.1, 0.12, 32).rotateX(-Math.PI / 2),
+                new THREE.MeshBasicMaterial({ color: 0x00ff00 })
             );
             reticle.matrixAutoUpdate = false;
             reticle.visible = false;
             scene.add(reticle);
 
-            // Lắng nghe sự kiện bấm vào màn hình để đặt đồ
-            controller = renderer.xr.getController(0);
-            controller.addEventListener('select', onSelect);
-            scene.add(controller);
-
             window.addEventListener('resize', onWindowResize);
             
-            // Khởi tạo Joystick
             setupJoystick();
         }
 
         function setupJoystick() {
-            let options = { zone: document.getElementById('joystick-zone'), mode: 'static', position: {left: '50%', top: '50%'}, color: 'white' };
-            let manager = nipplejs.create(options);
-            
-            manager.on('move', function (evt, data) {
-                if (data.direction) {
-                    // Logic di chuyển nhân vật/camera sẽ thêm ở bước sau
-                    console.log("Di chuyển hướng: " + data.direction.angle);
+            const options = {
+                zone: document.getElementById('joystick-zone'),
+                mode: 'static',
+                position: { left: '75px', top: '75px' },
+                color: 'white',
+                size: 100
+            };
+            const manager = nipplejs.create(options);
+            manager.on('move', (evt, data) => {
+                if (data.vector) {
+                    moveForward = data.vector.y;
+                    moveSides = data.vector.x;
                 }
+            });
+            manager.on('end', () => {
+                moveForward = 0;
+                moveSides = 0;
             });
         }
 
-        function addObject(modelPath) {
+        window.addObject = function(modelPath) {
             if (reticle.visible) {
-                loader.load(modelPath, function (gltf) {
-                    let model = gltf.scene;
+                loader.load(modelPath, (gltf) => {
+                    const model = gltf.scene;
                     model.position.setFromMatrixPosition(reticle.matrix);
                     scene.add(model);
+                }, undefined, (error) => {
+                    alert("Không tìm thấy file: " + modelPath + ". Hãy kiểm tra lại tên file trên GitHub!");
                 });
             } else {
-                alert("Hãy đưa camera quét sàn cho đến khi thấy vòng tròn tâm ngắm!");
+                alert("Hãy lia camera quét sàn để tìm vị trí đặt đồ (vòng tròn xanh)!");
             }
-        }
-
-        function onSelect() {
-            // Có thể dùng để chọn vật thể hoặc đặt vật thể mặc định
         }
 
         function onWindowResize() {
@@ -128,35 +128,51 @@
         }
 
         function render(timestamp, frame) {
+            // Xử lý di chuyển Camera (Nhân vật)
+            if (moveForward !== 0 || moveSides !== 0) {
+                const direction = new THREE.Vector3();
+                camera.getWorldDirection(direction);
+                direction.y = 0; // Giữ nhân vật đi trên sàn
+                direction.normalize();
+
+                // Tiến lùi
+                camera.position.addScaledVector(direction, moveForward * speed);
+
+                // Sang ngang
+                const sideVector = new THREE.Vector3();
+                sideVector.crossVectors(camera.up, direction);
+                camera.position.addScaledVector(sideVector, -moveSides * speed);
+            }
+
             if (frame) {
-                let referenceSpace = renderer.xr.getReferenceSpace();
-                let session = renderer.xr.getSession();
+                const referenceSpace = renderer.xr.getReferenceSpace();
+                const session = renderer.xr.getSession();
+                const hitTestResults = frame.getHitTestResults(session.requestHitTestSource({ space: referenceSpace }));
 
-                if (hitTestSourceRequested === false) {
-                    session.requestReferenceSpace('viewer').then(function (referenceSpace) {
-                        session.requestHitTestSource({ space: referenceSpace }).then(function (source) {
-                            hitTestSource = source;
-                        });
-                    });
-                    session.addEventListener('end', function () {
-                        hitTestSourceRequested = false;
-                        hitTestSource = null;
-                    });
-                    hitTestSourceRequested = true;
-                }
-
-                if (hitTestSource) {
-                    let hitTestResults = frame.getHitTestResults(hitTestSource);
-                    if (hitTestResults.length) {
-                        let hit = hitTestResults[0];
-                        reticle.visible = true;
-                        reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
-                    } else {
-                        reticle.visible = false;
-                    }
-                }
+                // Chúng ta cần xử lý hit-test liên tục ở đây
+                // (Phần này được tối ưu để nhận diện sàn nhà)
+                handleHitTest(frame, renderer, referenceSpace);
             }
             renderer.render(scene, camera);
+        }
+
+        let hitTestSource = null;
+        async function handleHitTest(frame, renderer, referenceSpace) {
+            const session = renderer.xr.getSession();
+            if (!hitTestSource) {
+                const viewerSpace = await session.requestReferenceSpace('viewer');
+                hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
+            }
+            if (hitTestSource) {
+                const hitTestResults = frame.getHitTestResults(hitTestSource);
+                if (hitTestResults.length > 0) {
+                    const hit = hitTestResults[0];
+                    reticle.visible = true;
+                    reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
+                } else {
+                    reticle.visible = false;
+                }
+            }
         }
     </script>
 </body>
