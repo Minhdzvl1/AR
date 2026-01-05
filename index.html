@@ -3,60 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>App AR Của Tôi</title>
+    <title>AR Furniture Final</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.9.0/nipplejs.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000; }
+        body { margin: 0; overflow: hidden; background-color: #111; font-family: sans-serif; }
         
-        /* Giao diện nút chọn đồ */
-        #menu-do-vat {
+        /* NÚT START AR TỰ CHẾ - TO VÀ RÕ */
+        #custom-ar-button {
             position: absolute;
-            bottom: 20px;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            z-index: 999; /* Để luôn hiện trên cùng */
-        }
-
-        .nut-bam {
-            padding: 15px 25px;
-            background: #28a745;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 40px;
+            background: #ff4757;
             color: white;
             border: none;
-            border-radius: 30px;
-            font-size: 16px;
+            border-radius: 50px;
+            font-size: 20px;
             font-weight: bold;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            z-index: 9999;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(255, 71, 87, 0.6);
         }
 
-        /* Vùng Joystick */
-        #vung-joystick {
-            position: absolute;
-            bottom: 50px;
-            left: 30px;
-            width: 120px;
-            height: 120px;
-            z-index: 1000;
+        #menu-do-vat { 
+            position: absolute; bottom: 20px; width: 100%; 
+            display: flex; justify-content: center; gap: 15px; z-index: 100; 
+            display: none; /* Chỉ hiện khi đã vào AR */
+        }
+        
+        .nut-bam { 
+            padding: 12px 20px; background: #2ed573; color: white; 
+            border: none; border-radius: 25px; font-weight: bold; 
         }
 
-        /* Thông báo hướng dẫn */
-        #huong-dan {
-            position: absolute;
-            top: 20px;
-            width: 100%;
-            text-align: center;
-            color: yellow;
-            font-size: 18px;
-            z-index: 10;
-            text-shadow: 2px 2px 4px #000;
+        #vung-joystick { 
+            position: absolute; bottom: 40px; left: 30px; 
+            width: 120px; height: 120px; z-index: 1000; display: none;
         }
     </style>
 </head>
 <body>
 
-    <div id="huong-dan">Bấm nút "START AR" màu trắng ở giữa để bắt đầu</div>
+    <button id="custom-ar-button">BẮT ĐẦU TRẢI NGHIỆM AR</button>
 
     <div id="menu-do-vat">
         <button class="nut-bam" onclick="themDoVat('ghe.glb')">Thêm Ghế</button>
@@ -66,42 +56,61 @@
     <div id="vung-joystick"></div>
 
     <script type="module">
-        import { ARButton } from 'https://unpkg.com/three@0.128.0/examples/jsm/webxr/ARButton.js';
         import { GLTFLoader } from 'https://unpkg.com/three@0.128.0/examples/jsm/loaders/GLTFLoader.js';
 
-        let scene, camera, renderer, reticle;
-        let moveF = 0, moveS = 0;
-        const speed = 0.03;
-        const loader = new GLTFLoader();
+        let scene, camera, renderer, reticle, loader = new GLTFLoader();
+        let moveF = 0, moveS = 0, speed = 0.03;
+        let xrSession = null;
+        let hitTestSource = null;
 
-        init();
-        animate();
+        const startBtn = document.getElementById('custom-ar-button');
 
-        function init() {
+        startBtn.onclick = async () => {
+            if (navigator.xr) {
+                try {
+                    // Kiểm tra xem máy có hỗ trợ AR không
+                    const supported = await navigator.xr.isSessionSupported('immersive-ar');
+                    if (supported) {
+                        xrSession = await navigator.xr.requestSession('immersive-ar', {
+                            requiredFeatures: ['hit-test'],
+                            optionalFeatures: ['dom-overlay'],
+                            domOverlay: { root: document.body }
+                        });
+                        
+                        // Ẩn nút Start, hiện Menu và Joystick
+                        startBtn.style.display = 'none';
+                        document.getElementById('menu-do-vat').style.display = 'flex';
+                        document.getElementById('vung-joystick').style.display = 'block';
+                        
+                        startAR();
+                    } else {
+                        alert("Điện thoại của bạn không hỗ trợ AR WebXR.");
+                    }
+                } catch (e) {
+                    alert("Lỗi khởi động AR: " + e.message);
+                }
+            } else {
+                alert("Trình duyệt này không hỗ trợ AR. Hãy dùng Safari (iOS) hoặc Chrome (Android).");
+            }
+        };
+
+        function startAR() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-
-            const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-            scene.add(light);
-
+            
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.xr.enabled = true;
-            document.body.appendChild(renderer.domElement);
 
-            // TẠO NÚT START AR (Tôi đã chỉnh cho nó nổi bật hơn)
-            const nutAR = ARButton.createButton(renderer, { 
-                requiredFeatures: ['hit-test'],
-                optionalFeatures: ['dom-overlay'],
-                domOverlay: { root: document.body }
-            });
-            nutAR.style.backgroundColor = "white";
-            nutAR.style.color = "black";
-            nutAR.style.bottom = "150px"; // Đẩy lên trên nút chọn đồ
-            document.body.appendChild(nutAR);
+            // Thiết lập ánh sáng
+            const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+            scene.add(light);
 
-            // Vòng tròn định vị trên sàn
+            // Gán session vào renderer
+            renderer.xr.setSession(xrSession);
+
+            // Tạo tâm ngắm (Reticle)
             reticle = new THREE.Mesh(
                 new THREE.RingGeometry(0.1, 0.12, 32).rotateX(-Math.PI / 2),
                 new THREE.MeshBasicMaterial({ color: 0x00ff00 })
@@ -110,14 +119,17 @@
             reticle.visible = false;
             scene.add(reticle);
 
-            // Cài đặt Joystick
+            setupJoystick();
+            renderer.setAnimationLoop(render);
+        }
+
+        function setupJoystick() {
             const options = { zone: document.getElementById('vung-joystick'), mode: 'static', position: {left: '60px', bottom: '60px'}, color: 'white' };
             const joy = nipplejs.create(options);
             joy.on('move', (e, d) => { if(d.vector) { moveF = d.vector.y; moveS = d.vector.x; } });
             joy.on('end', () => { moveF = 0; moveS = 0; });
         }
 
-        // Hàm thêm đồ vật
         window.themDoVat = function(name) {
             if (reticle.visible) {
                 loader.load(name, (gltf) => {
@@ -126,14 +138,11 @@
                     scene.add(model);
                 });
             } else {
-                alert("Hãy đưa máy quét sàn nhà cho đến khi hiện vòng tròn xanh!");
+                alert("Vui lòng quét sàn cho đến khi hiện vòng tròn xanh!");
             }
         }
 
-        function animate() { renderer.setAnimationLoop(render); }
-
         function render(timestamp, frame) {
-            // Xử lý di chuyển bằng Joystick
             if (moveF !== 0 || moveS !== 0) {
                 const dir = new THREE.Vector3();
                 camera.getWorldDirection(dir);
@@ -144,27 +153,23 @@
             }
 
             if (frame) {
-                handleHitTest(frame);
-            }
-            renderer.render(scene, camera);
-        }
-
-        let hitSource = null;
-        async function handleHitTest(frame) {
-            const session = renderer.xr.getSession();
-            if (!hitSource) {
-                const space = await session.requestReferenceSpace('viewer');
-                hitSource = await session.requestHitTestSource({ space: space });
-            }
-            if (hitSource) {
-                const results = frame.getHitTestResults(hitSource);
-                if (results.length > 0) {
-                    reticle.visible = true;
-                    reticle.matrix.fromArray(results[0].getPose(renderer.xr.getReferenceSpace()).transform.matrix);
-                } else {
-                    reticle.visible = false;
+                const session = renderer.xr.getSession();
+                if (!hitTestSource) {
+                    session.requestReferenceSpace('viewer').then(space => {
+                        session.requestHitTestSource({ space }).then(source => { hitTestSource = source; });
+                    });
+                }
+                if (hitTestSource) {
+                    const results = frame.getHitTestResults(hitTestSource);
+                    if (results.length > 0) {
+                        reticle.visible = true;
+                        reticle.matrix.fromArray(results[0].getPose(renderer.xr.getReferenceSpace()).transform.matrix);
+                    } else {
+                        reticle.visible = false;
+                    }
                 }
             }
+            renderer.render(scene, camera);
         }
     </script>
 </body>
