@@ -6,42 +6,45 @@
     <title>AR Interior Designer Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; font-family: sans-serif; }
+        body { margin: 0; overflow: hidden; font-family: sans-serif; background: #000; }
+        
+        /* Giao diện nút bấm trong Camera */
         #ar-ui {
             position: absolute; bottom: 20px; width: 100%;
             display: none; flex-direction: column; align-items: center; gap: 10px;
-            z-index: 1000; background: rgba(0,0,0,0.2); padding: 10px 0;
+            z-index: 1000;
         }
-        .button-group { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+
+        .group { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; background: rgba(0,0,0,0.4); padding: 10px; border-radius: 15px; }
+        
         button {
-            padding: 10px 15px; border-radius: 15px; border: none;
-            background: white; color: #333; font-weight: bold; font-size: 12px;
+            padding: 10px 12px; border-radius: 10px; border: none;
+            background: white; color: #333; font-weight: bold; font-size: 13px;
         }
+
         .btn-add { background: #28a745; color: white; }
-        .btn-ctrl { background: #007bff; color: white; min-width: 40px; }
-        .label { color: white; font-size: 12px; font-weight: bold; }
+        .btn-ctrl { background: #007bff; color: white; min-width: 45px; font-size: 18px; }
+        .label { color: white; font-size: 12px; font-weight: bold; width: 100%; text-align: center; }
     </style>
 </head>
 <body>
 
     <div id="ar-ui">
-        <div class="button-group">
-            <button class="btn-add" onclick="createNewObject('ghe.glb')">+ Ghế</button>
-            <button class="btn-add" onclick="createNewObject('ban.glb')">+ Bàn</button>
-            <button class="btn-add" onclick="createNewObject('tivi.glb')">+ Tivi</button>
-            <button class="btn-add" onclick="createNewObject('den.glb')">+ Đèn</button>
+        <div class="label">DANH SÁCH ĐỒ VẬT</div>
+        <div class="group">
+            <button class="btn-add" onclick="createNewObject('ghe.glb')">Ghế</button>
+            <button class="btn-add" onclick="createNewObject('ban.glb')">Bàn</button>
+            <button class="btn-add" onclick="createNewObject('tivi.glb')">Tivi</button>
+            <button class="btn-add" onclick="createNewObject('den.glb')">Đèn</button>
         </div>
 
-        <div class="button-group">
-            <span class="label">Nâng/Hạ:</span>
+        <div class="label">ĐIỀU CHỈNH VẬT VỪA ĐẶT</div>
+        <div class="group">
             <button class="btn-ctrl" onclick="moveLastObject('y', 0.05)">+</button>
             <button class="btn-ctrl" onclick="moveLastObject('y', -0.05)">-</button>
-            
-            <span class="label">Tiến/Lùi:</span>
-            <button class="btn-ctrl" onclick="moveLastObject('z', -0.05)">↑</button>
-            <button class="btn-ctrl" onclick="moveLastObject('z', 0.05)">↓</button>
+            <button class="btn-ctrl" onclick="moveLastObject('z', -0.05)">↑ (Tiến)</button>
+            <button class="btn-ctrl" onclick="moveLastObject('z', 0.05)">↓ (Lùi)</button>
         </div>
-        <div class="label" style="font-size: 10px;">Chạm vật vừa đặt để nâng/hạ hoặc tiến/lùi</div>
     </div>
 
     <script type="module">
@@ -66,6 +69,7 @@
             renderer.xr.enabled = true;
             document.body.appendChild(renderer.domElement);
 
+            // Nút Start AR
             const btn = ARButton.createButton(renderer, { 
                 requiredFeatures: ['hit-test'],
                 optionalFeatures: ['dom-overlay'],
@@ -73,10 +77,12 @@
             });
             document.body.appendChild(btn);
 
+            // Hiện giao diện khi vào AR
             renderer.xr.addEventListener('sessionstart', () => {
                 document.getElementById('ar-ui').style.display = 'flex';
             });
 
+            // Tâm ngắm
             reticle = new THREE.Mesh(
                 new THREE.RingGeometry(0.1, 0.12, 32).rotateX(-Math.PI / 2),
                 new THREE.MeshBasicMaterial({ color: 0x00ff00 })
@@ -86,6 +92,7 @@
             scene.add(reticle);
         }
 
+        // Tạo vật thể mới
         window.createNewObject = function(filename) {
             if (reticle.visible) {
                 loader.load(filename, (gltf) => {
@@ -93,18 +100,20 @@
                     model.position.setFromMatrixPosition(reticle.matrix);
                     scene.add(model);
                     addedObjects.push(model);
-                }, undefined, (e) => alert("Không tìm thấy file: " + filename));
+                }, undefined, (e) => alert("Không tìm thấy file 3D trên GitHub: " + filename));
             } else {
-                alert("Hãy quét sàn tìm vòng tròn xanh trước khi thêm!");
+                alert("Hãy lia máy quét sàn nhà để hiện vòng tròn xanh!");
             }
         };
 
-        // Hàm di chuyển đa năng: 'y' là cao thấp, 'z' là xa gần
+        // Di chuyển vật thể
         window.moveLastObject = function(axis, amount) {
             if (addedObjects.length > 0) {
                 const lastObj = addedObjects[addedObjects.length - 1];
                 if(axis === 'y') lastObj.position.y += amount;
                 if(axis === 'z') lastObj.translateZ(amount);
+            } else {
+                alert("Chưa có vật thể nào để điều chỉnh!");
             }
         };
 
@@ -126,10 +135,10 @@
                 hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
             }
             if (hitTestSource) {
-                const hitTestResults = frame.getHitTestResults(hitTestSource);
-                if (hitTestResults.length > 0) {
+                const results = frame.getHitTestResults(hitTestSource);
+                if (results.length > 0) {
                     reticle.visible = true;
-                    reticle.matrix.fromArray(hitTestResults[0].getPose(referenceSpace).transform.matrix);
+                    reticle.matrix.fromArray(results[0].getPose(referenceSpace).transform.matrix);
                 } else {
                     reticle.visible = false;
                 }
@@ -138,7 +147,6 @@
     </script>
 </body>
 </html>
-
 
 
 
