@@ -1,117 +1,111 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AR Pro - Full Features</title>
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Interior Pro - iPhone Stable</title>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; font-family: sans-serif; }
-        .ui-overlay {
-            position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
-            width: 95%; z-index: 999; display: flex; flex-direction: column; gap: 5px;
-            background: rgba(0,0,0,0.5); padding: 10px; border-radius: 15px;
+        body { margin: 0; background: #1a1a1a; color: white; font-family: sans-serif; }
+        .header { padding: 15px; text-align: center; background: #333; }
+        
+        /* Khu vực hiển thị 3D */
+        model-viewer { 
+            width: 100%; 
+            height: 70vh; 
+            background: #222;
+            --ar-button-display: none; /* Ẩn nút AR mặc định để dùng nút tự chế */
         }
-        .control-row { display: flex; justify-content: center; gap: 4px; flex-wrap: wrap; margin-bottom: 5px; }
+
+        /* Bảng điều khiển */
+        .controls {
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: #222;
+            border-top: 1px solid #444;
+        }
+
+        .row { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+        
         button {
-            padding: 8px 10px; border-radius: 6px; border: none;
-            background: white; font-weight: bold; font-size: 11px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            padding: 12px 18px; border-radius: 12px; border: none;
+            font-weight: bold; font-size: 13px; cursor: pointer;
         }
-        .btn-add { background: #28a745; color: white; }
-        .btn-move { background: #007bff; color: white; min-width: 40px; }
-        .btn-rot { background: #ff9f43; color: white; }
-        .btn-scale { background: #6c5ce7; color: white; }
-        .label { color: white; font-size: 10px; font-weight: bold; width: 100%; text-align: center; margin-bottom: 2px; }
+
+        .btn-item { background: #444; color: white; border: 1px solid #666; }
+        .btn-item.active { background: #007bff; border-color: #fff; }
+        
+        .btn-ar { 
+            background: #28a745; color: white; width: 100%; 
+            font-size: 16px; margin-top: 5px; 
+        }
+
+        .hint { font-size: 12px; color: #aaa; text-align: center; margin-top: 5px; }
     </style>
 </head>
-<body style="margin: 0; overflow: hidden;">
+<body>
 
-    <div class="ui-overlay">
-        <div class="label">THÊM ĐỒ VẬT</div>
-        <div class="control-row">
-            <button class="btn-add" onclick="add('den.glb')">💡 Đèn</button>
-            <button class="btn-add" onclick="add('tivi.glb')">📺 Tivi</button>
-            <button class="btn-add" onclick="add('ghe.glb')">🪑 Ghế</button>
-            <button class="btn-add" onclick="add('ban.glb')">📦 Bàn</button>
-        </div>
-        
-        <div class="label">DI CHUYỂN & NÂNG HẠ</div>
-        <div class="control-row">
-            <button class="btn-move" onclick="move('y', 0.1)">+</button>
-            <button class="btn-move" onclick="move('y', -0.1)">-</button>
-            <button class="btn-move" onclick="move('z', -0.2)">↑ Tiến</button>
-            <button class="btn-move" onclick="move('z', 0.2)">↓ Lùi</button>
-        </div>
-
-        <div class="label">XOAY & PHÓNG TO/THU NHỎ</div>
-        <div class="control-row">
-            <button class="btn-rot" onclick="rotate(15)">🔄 Xoay</button>
-            <button class="btn-scale" onclick="scale(1.1)">🔍 To</button>
-            <button class="btn-scale" onclick="scale(0.9)">🔍 Nhỏ</button>
-            <button style="background:#ed1c24; color:white" onclick="removeLast()">Xóa</button>
-        </div>
+    <div class="header">
+        <strong>THIẾT KẾ NỘI THẤT AR</strong>
     </div>
 
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
-        <a-entity id="main-container"></a-entity>
-        <a-entity camera></a-entity>
-        <a-light type="ambient" intensity="0.8"></a-light>
-    </a-scene>
+    <model-viewer 
+        id="ar-view"
+        src="ghe.glb" 
+        ar 
+        ar-modes="quick-look webxr scene-viewer" 
+        camera-controls 
+        shadow-intensity="1"
+        ar-placement="floor"
+        touch-action="pan-y">
+        
+        <button slot="ar-button" style="display:none;"></button> 
+    </model-viewer>
+
+    <div class="controls">
+        <div class="hint">Chọn món đồ bạn muốn xem trong phòng:</div>
+        <div class="row">
+            <button class="btn-item active" onclick="selectItem('ghe.glb', this)">🪑 Ghế</button>
+            <button class="btn-item" onclick="selectItem('ban.glb', this)">📦 Bàn</button>
+            <button class="btn-item" onclick="selectItem('tivi.glb', this)">📺 Tivi</button>
+            <button class="btn-item" onclick="selectItem('den.glb', this)">💡 Đèn</button>
+        </div>
+
+        <button class="btn-ar" onclick="startAR()">🚀 XEM TRONG PHÒNG (AR)</button>
+        
+        <div class="hint">Trong AR: Dùng 1 ngón di chuyển, 2 ngón để xoay/nâng</div>
+    </div>
 
     <script>
-        let lastObjId = null;
-        let objCount = 0;
+        const modelViewer = document.querySelector("#ar-view");
 
-        function add(file) {
-            const container = document.querySelector('#main-container');
-            const id = 'obj-' + (objCount++);
-            const entity = document.createElement('a-entity');
-            entity.setAttribute('id', id);
-            entity.setAttribute('gltf-model', file);
-            entity.setAttribute('position', '0 0 -2'); 
-            entity.setAttribute('scale', '1 1 1');
-            container.appendChild(entity);
-            lastObjId = id;
+        // Hàm đổi đồ vật
+        function selectItem(file, btn) {
+            // Đổi nguồn file 3D
+            modelViewer.src = file;
+            
+            // Đổi hiệu ứng nút bấm
+            document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
         }
 
-        function move(axis, val) {
-            if (!lastObjId) return;
-            const el = document.getElementById(lastObjId);
-            const pos = el.getAttribute('position');
-            pos[axis] += val;
-            el.setAttribute('position', pos);
+        // Hàm kích hoạt AR chuẩn iPhone (Quick Look)
+        function startAR() {
+            modelViewer.activateAR();
         }
 
-        function rotate(deg) {
-            if (!lastObjId) return;
-            const el = document.getElementById(lastObjId);
-            const rot = el.getAttribute('rotation');
-            rot.y += deg;
-            el.setAttribute('rotation', rot);
-        }
-
-        function scale(factor) {
-            if (!lastObjId) return;
-            const el = document.getElementById(lastObjId);
-            const currentScale = el.getAttribute('scale');
-            el.setAttribute('scale', {
-                x: currentScale.x * factor,
-                y: currentScale.y * factor,
-                z: currentScale.z * factor
-            });
-        }
-
-        function removeLast() {
-            if (!lastObjId) return;
-            const el = document.getElementById(lastObjId);
-            el.parentNode.removeChild(el);
-            lastObjId = null;
-        }
+        // Lắng nghe sự kiện click để hỗ trợ chọn vật thể (giả lập)
+        modelViewer.addEventListener('click', (event) => {
+            if (modelViewer.canActivateAR) {
+                console.log("Sẵn sàng cho AR");
+            }
+        });
     </script>
 </body>
 </html>
+
 
 
 
