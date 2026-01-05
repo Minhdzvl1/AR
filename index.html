@@ -3,101 +3,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AR Interior Pro</title>
-    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
+    <title>AR Interior Designer Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #1a1a1a; }
-        model-viewer { width: 100%; height: 100vh; --ar-button-display: none; }
-        
-        /* Menu điều khiển */
-        .ui-panel {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            display: flex; flex-direction: column; gap: 10px; width: 90%; z-index: 100;
+        body { margin: 0; overflow: hidden; font-family: sans-serif; }
+        #ar-ui {
+            position: absolute; bottom: 20px; width: 100%;
+            display: none; flex-direction: column; align-items: center; gap: 10px;
+            z-index: 1000; background: rgba(0,0,0,0.2); padding: 10px 0;
         }
-        .row { display: flex; justify-content: center; gap: 10px; }
-        
+        .button-group { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
         button {
-            padding: 12px 18px; border-radius: 12px; border: none;
-            background: white; color: #333; font-weight: bold; font-size: 14px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            padding: 10px 15px; border-radius: 15px; border: none;
+            background: white; color: #333; font-weight: bold; font-size: 12px;
         }
-        .btn-ar { background: #ff4757; color: white; padding: 15px 30px; font-size: 16px; }
-        .btn-move { background: #2ed573; color: white; width: 50px; height: 50px; font-size: 20px; }
-        
-        #instructions {
-            position: fixed; top: 20px; width: 100%; text-align: center;
-            color: white; background: rgba(0,0,0,0.5); padding: 10px 0; z-index: 10;
-        }
+        .btn-add { background: #28a745; color: white; }
+        .btn-ctrl { background: #007bff; color: white; min-width: 40px; }
+        .label { color: white; font-size: 12px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="instructions">Chọn đồ -> Nhấn AR -> Dùng phím +/- để Nâng/Hạ</div>
-
-    <model-viewer 
-        id="mv"
-        src="ghe.glb" 
-        ar ar-modes="webxr scene-viewer quick-look" 
-        camera-controls 
-        touch-action="pan-y"
-        shadow-intensity="1">
-        
-        <div class="ui-panel">
-            <div class="row">
-                <button onclick="switchModel('ghe.glb')">Ghế</button>
-                <button onclick="switchModel('ban.glb')">Bàn</button>
-                <button id="start-ar" class="btn-ar">BẬT CAMERA AR</button>
-            </div>
-            
-            <div class="row">
-                <span>Nâng/Hạ:</span>
-                <button class="btn-move" onclick="changeHeight(0.05)">+</button>
-                <button class="btn-move" onclick="changeHeight(-0.05)">-</button>
-            </div>
+    <div id="ar-ui">
+        <div class="button-group">
+            <button class="btn-add" onclick="createNewObject('ghe.glb')">+ Ghế</button>
+            <button class="btn-add" onclick="createNewObject('ban.glb')">+ Bàn</button>
+            <button class="btn-add" onclick="createNewObject('tivi.glb')">+ Tivi</button>
+            <button class="btn-add" onclick="createNewObject('den.glb')">+ Đèn</button>
         </div>
-    </model-viewer>
 
-    <script>
-        const mv = document.querySelector("#mv");
-        const arButton = document.querySelector("#start-ar");
-
-        // Bật AR
-        arButton.addEventListener('click', () => {
-            mv.activateAR();
-        });
-
-        // Đổi mô hình
-        window.switchModel = (name) => {
-            mv.src = name;
-        };
-
-        // Hàm Nâng/Hạ đồ vật
-        window.changeHeight = (amount) => {
-            // Lấy vị trí hiện tại của vật thể trong không gian AR
-            // Model-viewer sử dụng thuộc tính placement để điều chỉnh
-            const currentHeight = mv.getAttribute('camera-target') || "0m 0m 0m";
-            // Cách xử lý nâng hạ đơn giản nhất cho Model-viewer là dùng biến transform
-            let currentTransform = mv.style.transform || "translateY(0px)";
+        <div class="button-group">
+            <span class="label">Nâng/Hạ:</span>
+            <button class="btn-ctrl" onclick="moveLastObject('y', 0.05)">+</button>
+            <button class="btn-ctrl" onclick="moveLastObject('y', -0.05)">-</button>
             
-            // Lưu ý: Trong AR thực tế của Google, vật thể bám sàn. 
-            // Để nâng hạ, chúng ta can thiệp vào vị trí gốc của mô hình.
-            const parts = mv.style.getPropertyValue('--min-hotspot-opacity') || 0;
-            // Một thủ thuật nhỏ: chúng ta dịch chuyển mô hình bên trong container
-            const currentPos = mv.getAttribute('data-y') || 0;
-            const newY = parseFloat(currentPos) + amount;
-            mv.setAttribute('data-y', newY);
-            mv.style.translate = `0 ${-newY * 100}px`; // Mô phỏng nâng lên
-            
-            alert("Đã điều chỉnh độ cao: " + newY.toFixed(2) + "m");
-        };
+            <span class="label">Tiến/Lùi:</span>
+            <button class="btn-ctrl" onclick="moveLastObject('z', -0.05)">↑</button>
+            <button class="btn-ctrl" onclick="moveLastObject('z', 0.05)">↓</button>
+        </div>
+        <div class="label" style="font-size: 10px;">Chạm vật vừa đặt để nâng/hạ hoặc tiến/lùi</div>
+    </div>
 
-        // Khắc phục lỗi "Trôi" đồ: 
-        // Chúng ta thiết lập thuộc tính để nó bám sàn chặt hơn
-        mv.addEventListener('ar-status', (event) => {
-            if(event.detail.status === 'object-placed') {
-                console.log("Đồ vật đã được đặt cố định.");
+    <script type="module">
+        import { ARButton } from 'https://unpkg.com/three@0.128.0/examples/jsm/webxr/ARButton.js';
+        import { GLTFLoader } from 'https://unpkg.com/three@0.128.0/examples/jsm/loaders/GLTFLoader.js';
+
+        let scene, camera, renderer, reticle;
+        let loader = new GLTFLoader();
+        let addedObjects = []; 
+
+        init();
+        animate();
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+            scene.add(new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1));
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.xr.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            const btn = ARButton.createButton(renderer, { 
+                requiredFeatures: ['hit-test'],
+                optionalFeatures: ['dom-overlay'],
+                domOverlay: { root: document.getElementById('ar-ui') }
+            });
+            document.body.appendChild(btn);
+
+            renderer.xr.addEventListener('sessionstart', () => {
+                document.getElementById('ar-ui').style.display = 'flex';
+            });
+
+            reticle = new THREE.Mesh(
+                new THREE.RingGeometry(0.1, 0.12, 32).rotateX(-Math.PI / 2),
+                new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+            );
+            reticle.matrixAutoUpdate = false;
+            reticle.visible = false;
+            scene.add(reticle);
+        }
+
+        window.createNewObject = function(filename) {
+            if (reticle.visible) {
+                loader.load(filename, (gltf) => {
+                    const model = gltf.scene;
+                    model.position.setFromMatrixPosition(reticle.matrix);
+                    scene.add(model);
+                    addedObjects.push(model);
+                }, undefined, (e) => alert("Không tìm thấy file: " + filename));
+            } else {
+                alert("Hãy quét sàn tìm vòng tròn xanh trước khi thêm!");
             }
-        });
+        };
+
+        // Hàm di chuyển đa năng: 'y' là cao thấp, 'z' là xa gần
+        window.moveLastObject = function(axis, amount) {
+            if (addedObjects.length > 0) {
+                const lastObj = addedObjects[addedObjects.length - 1];
+                if(axis === 'y') lastObj.position.y += amount;
+                if(axis === 'z') lastObj.translateZ(amount);
+            }
+        };
+
+        function animate() { renderer.setAnimationLoop(render); }
+
+        function render(timestamp, frame) {
+            if (frame) {
+                const session = renderer.xr.getSession();
+                const referenceSpace = renderer.xr.getReferenceSpace();
+                handleHitTest(frame, session, referenceSpace);
+            }
+            renderer.render(scene, camera);
+        }
+
+        let hitTestSource = null;
+        async function handleHitTest(frame, session, referenceSpace) {
+            if (!hitTestSource) {
+                const viewerSpace = await session.requestReferenceSpace('viewer');
+                hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
+            }
+            if (hitTestSource) {
+                const hitTestResults = frame.getHitTestResults(hitTestSource);
+                if (hitTestResults.length > 0) {
+                    reticle.visible = true;
+                    reticle.matrix.fromArray(hitTestResults[0].getPose(referenceSpace).transform.matrix);
+                } else {
+                    reticle.visible = false;
+                }
+            }
+        }
     </script>
 </body>
 </html>
