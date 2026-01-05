@@ -1,92 +1,57 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR Interior - Natural Scale</title>
+    <title>AR Interior Fixed</title>
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
     <style>
-        body { margin: 0; background: #1a1a1a; color: white; font-family: sans-serif; }
-        .header { padding: 15px; text-align: center; background: #333; font-weight: bold; }
-        
-        model-viewer { 
-            width: 100%; 
-            height: 75vh; 
-            background: #222;
-            --ar-button-display: none;
-        }
-
-        .controls {
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            background: #222;
-            border-top: 1px solid #444;
-        }
-
-        .row { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
-        
-        button {
-            padding: 12px 18px; border-radius: 12px; border: none;
-            font-weight: bold; font-size: 13px; cursor: pointer;
-        }
-
-        .btn-item { background: #444; color: white; border: 1px solid #666; }
-        .btn-item.active { background: #007bff; border-color: #fff; }
-        
-        .btn-ar { 
-            background: #28a745; color: white; width: 100%; 
-            font-size: 16px; margin-top: 5px; box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
-        }
-
-        .hint { font-size: 11px; color: #888; text-align: center; margin-top: 5px; }
+        body { margin: 0; background: #000; color: white; font-family: sans-serif; }
+        model-viewer { width: 100%; height: 80vh; background: #111; }
+        .ui { padding: 15px; display: flex; flex-direction: column; gap: 10px; background: #222; }
+        .row { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        button { padding: 12px 15px; border-radius: 8px; border: none; font-weight: bold; }
+        .btn-item { background: #444; color: white; }
+        .btn-ar { background: #28a745; color: white; font-size: 16px; }
+        .msg { font-size: 12px; color: #f1c40f; text-align: center; }
     </style>
 </head>
 <body>
 
-    <div class="header">THIẾT KẾ NỘI THẤT</div>
-
     <model-viewer 
-        id="ar-view"
+        id="view"
         src="ghe.glb" 
         ar 
-        ar-modes="quick-look webxr scene-viewer" 
+        ar-modes="quick-look webxr" 
         camera-controls 
         shadow-intensity="1"
-        /* 1. Quan trọng: ar-placement="floor" giúp bám sàn */
+        /* GIẢI PHÁP LỖI SCALE: Ép vật thể luôn nằm trong khung nhìn */
+        bounds="tight"
+        /* GIẢI PHÁP LỖI BÁM SÀN: Buộc iPhone tìm sàn trước khi hiện đồ */
         ar-placement="floor"
-        /* 2. Xóa bỏ hoàn toàn scale thủ công để máy tự tính toán theo thực tế */
-        /* 3. Thêm tính năng chạm để tập trung vào sàn */
         interaction-prompt="auto"
         touch-action="pan-y">
         
-        <button slot="ar-button" style="display:none;"></button> 
+        <button slot="ar-button" style="display:none;"></button>
     </model-viewer>
 
-    <div class="controls">
+    <div class="ui">
+        <div class="msg">⚠️ Nếu đồ quá to/nhỏ, hãy dùng 2 ngón tay chỉnh lại 1 lần duy nhất trong AR</div>
         <div class="row">
-            <button class="btn-item active" onclick="selectItem('ghe.glb', this)">🪑 Ghế</button>
-            <button class="btn-item" onclick="selectItem('ban.glb', this)">📦 Bàn</button>
-            <button class="btn-item" onclick="selectItem('tivi.glb', this)">📺 Tivi</button>
-            <button class="btn-item" onclick="selectItem('den.glb', this)">💡 Đèn</button>
+            <button class="btn-item" onclick="change('ghe.glb')">Ghế</button>
+            <button class="btn-item" onclick="change('ban.glb')">Bàn</button>
+            <button class="btn-item" onclick="change('tivi.glb')">Tivi</button>
+            <button class="btn-item" onclick="change('den.glb')">Đèn</button>
         </div>
-
-        <button class="btn-ar" onclick="startAR()">🚀 XEM TRONG PHÒNG (AR)</button>
-        <div class="hint">Lia máy xuống sàn cho đến khi vật thể hiện ra</div>
+        <button class="btn-ar" onclick="document.getElementById('view').activateAR()">🚀 BẮT ĐẦU ĐẶT ĐỒ VẬT</button>
     </div>
 
     <script>
-        const modelViewer = document.querySelector("#ar-view");
-
-        function selectItem(file, btn) {
-            modelViewer.src = file;
-            document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-        }
-
-        function startAR() {
-            modelViewer.activateAR();
+        function change(file) {
+            const v = document.getElementById('view');
+            v.src = file;
+            // Xóa bỏ mọi thuộc tính scale cũ để tránh xung đột
+            v.removeAttribute('scale');
         }
     </script>
 </body>
