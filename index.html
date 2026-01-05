@@ -3,56 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Game AR Nội Thất - Joystick Roblox Style</title>
+    <title>App AR Của Tôi</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.9.0/nipplejs.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; font-family: sans-serif; }
-        #ui-container {
-            position: absolute; bottom: 20px; width: 100%;
-            display: flex; justify-content: center; gap: 10px; z-index: 10;
+        body { margin: 0; overflow: hidden; background-color: #000; }
+        
+        /* Giao diện nút chọn đồ */
+        #menu-do-vat {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            z-index: 999; /* Để luôn hiện trên cùng */
         }
-        button {
-            padding: 12px 20px; border-radius: 25px; border: none;
-            background: #007bff; color: white; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+
+        .nut-bam {
+            padding: 15px 25px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
-        /* Vùng chứa Joystick */
-        #joystick-zone {
-            position: absolute; bottom: 40px; left: 40px;
-            width: 150px; height: 150px; z-index: 100;
+
+        /* Vùng Joystick */
+        #vung-joystick {
+            position: absolute;
+            bottom: 50px;
+            left: 30px;
+            width: 120px;
+            height: 120px;
+            z-index: 1000;
         }
-        #ar-instructions {
-            position: absolute; top: 10px; width: 100%; text-align: center;
-            color: white; background: rgba(0,0,0,0.5); z-index: 5; padding: 8px 0;
+
+        /* Thông báo hướng dẫn */
+        #huong-dan {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            color: yellow;
+            font-size: 18px;
+            z-index: 10;
+            text-shadow: 2px 2px 4px #000;
         }
     </style>
 </head>
 <body>
-    <div id="ar-instructions">1. Bấm START AR -> 2. Quét sàn (tìm vòng tròn) -> 3. Thêm đồ & Di chuyển</div>
-    
-    <div id="ui-container">
-        <button onclick="addObject('ghe.glb')"> + Ghế</button>
-        <button onclick="addObject('ban.glb')"> + Bàn</button>
+
+    <div id="huong-dan">Bấm nút "START AR" màu trắng ở giữa để bắt đầu</div>
+
+    <div id="menu-do-vat">
+        <button class="nut-bam" onclick="themDoVat('ghe.glb')">Thêm Ghế</button>
+        <button class="nut-bam" onclick="themDoVat('ban.glb')">Thêm Bàn</button>
     </div>
 
-    <div id="joystick-zone"></div>
+    <div id="vung-joystick"></div>
 
     <script type="module">
         import { ARButton } from 'https://unpkg.com/three@0.128.0/examples/jsm/webxr/ARButton.js';
         import { GLTFLoader } from 'https://unpkg.com/three@0.128.0/examples/jsm/loaders/GLTFLoader.js';
 
-        let scene, camera, renderer, reticle, controller;
-        let moveForward = 0, moveSides = 0;
-        const speed = 0.03; // Tốc độ di chuyển nhân vật
+        let scene, camera, renderer, reticle;
+        let moveF = 0, moveS = 0;
+        const speed = 0.03;
         const loader = new GLTFLoader();
 
         init();
         animate();
 
         function init() {
-            const container = document.createElement('div');
-            document.body.appendChild(container);
-
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
 
@@ -63,12 +88,20 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.xr.enabled = true;
-            container.appendChild(renderer.domElement);
+            document.body.appendChild(renderer.domElement);
 
-            // Nút bắt đầu AR
-            document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+            // TẠO NÚT START AR (Tôi đã chỉnh cho nó nổi bật hơn)
+            const nutAR = ARButton.createButton(renderer, { 
+                requiredFeatures: ['hit-test'],
+                optionalFeatures: ['dom-overlay'],
+                domOverlay: { root: document.body }
+            });
+            nutAR.style.backgroundColor = "white";
+            nutAR.style.color = "black";
+            nutAR.style.bottom = "150px"; // Đẩy lên trên nút chọn đồ
+            document.body.appendChild(nutAR);
 
-            // Tâm ngắm (Reticle)
+            // Vòng tròn định vị trên sàn
             reticle = new THREE.Mesh(
                 new THREE.RingGeometry(0.1, 0.12, 32).rotateX(-Math.PI / 2),
                 new THREE.MeshBasicMaterial({ color: 0x00ff00 })
@@ -77,98 +110,57 @@
             reticle.visible = false;
             scene.add(reticle);
 
-            window.addEventListener('resize', onWindowResize);
-            
-            setupJoystick();
+            // Cài đặt Joystick
+            const options = { zone: document.getElementById('vung-joystick'), mode: 'static', position: {left: '60px', bottom: '60px'}, color: 'white' };
+            const joy = nipplejs.create(options);
+            joy.on('move', (e, d) => { if(d.vector) { moveF = d.vector.y; moveS = d.vector.x; } });
+            joy.on('end', () => { moveF = 0; moveS = 0; });
         }
 
-        function setupJoystick() {
-            const options = {
-                zone: document.getElementById('joystick-zone'),
-                mode: 'static',
-                position: { left: '75px', top: '75px' },
-                color: 'white',
-                size: 100
-            };
-            const manager = nipplejs.create(options);
-            manager.on('move', (evt, data) => {
-                if (data.vector) {
-                    moveForward = data.vector.y;
-                    moveSides = data.vector.x;
-                }
-            });
-            manager.on('end', () => {
-                moveForward = 0;
-                moveSides = 0;
-            });
-        }
-
-        window.addObject = function(modelPath) {
+        // Hàm thêm đồ vật
+        window.themDoVat = function(name) {
             if (reticle.visible) {
-                loader.load(modelPath, (gltf) => {
+                loader.load(name, (gltf) => {
                     const model = gltf.scene;
                     model.position.setFromMatrixPosition(reticle.matrix);
                     scene.add(model);
-                }, undefined, (error) => {
-                    alert("Không tìm thấy file: " + modelPath + ". Hãy kiểm tra lại tên file trên GitHub!");
                 });
             } else {
-                alert("Hãy lia camera quét sàn để tìm vị trí đặt đồ (vòng tròn xanh)!");
+                alert("Hãy đưa máy quét sàn nhà cho đến khi hiện vòng tròn xanh!");
             }
         }
 
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-
-        function animate() {
-            renderer.setAnimationLoop(render);
-        }
+        function animate() { renderer.setAnimationLoop(render); }
 
         function render(timestamp, frame) {
-            // Xử lý di chuyển Camera (Nhân vật)
-            if (moveForward !== 0 || moveSides !== 0) {
-                const direction = new THREE.Vector3();
-                camera.getWorldDirection(direction);
-                direction.y = 0; // Giữ nhân vật đi trên sàn
-                direction.normalize();
-
-                // Tiến lùi
-                camera.position.addScaledVector(direction, moveForward * speed);
-
-                // Sang ngang
-                const sideVector = new THREE.Vector3();
-                sideVector.crossVectors(camera.up, direction);
-                camera.position.addScaledVector(sideVector, -moveSides * speed);
+            // Xử lý di chuyển bằng Joystick
+            if (moveF !== 0 || moveS !== 0) {
+                const dir = new THREE.Vector3();
+                camera.getWorldDirection(dir);
+                dir.y = 0; dir.normalize();
+                camera.position.addScaledVector(dir, moveF * speed);
+                const side = new THREE.Vector3().crossVectors(camera.up, dir);
+                camera.position.addScaledVector(side, -moveS * speed);
             }
 
             if (frame) {
-                const referenceSpace = renderer.xr.getReferenceSpace();
-                const session = renderer.xr.getSession();
-                const hitTestResults = frame.getHitTestResults(session.requestHitTestSource({ space: referenceSpace }));
-
-                // Chúng ta cần xử lý hit-test liên tục ở đây
-                // (Phần này được tối ưu để nhận diện sàn nhà)
-                handleHitTest(frame, renderer, referenceSpace);
+                handleHitTest(frame);
             }
             renderer.render(scene, camera);
         }
 
-        let hitTestSource = null;
-        async function handleHitTest(frame, renderer, referenceSpace) {
+        let hitSource = null;
+        async function handleHitTest(frame) {
             const session = renderer.xr.getSession();
-            if (!hitTestSource) {
-                const viewerSpace = await session.requestReferenceSpace('viewer');
-                hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
+            if (!hitSource) {
+                const space = await session.requestReferenceSpace('viewer');
+                hitSource = await session.requestHitTestSource({ space: space });
             }
-            if (hitTestSource) {
-                const hitTestResults = frame.getHitTestResults(hitTestSource);
-                if (hitTestResults.length > 0) {
-                    const hit = hitTestResults[0];
+            if (hitSource) {
+                const results = frame.getHitTestResults(hitSource);
+                if (results.length > 0) {
                     reticle.visible = true;
-                    reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
+                    reticle.matrix.fromArray(results[0].getPose(renderer.xr.getReferenceSpace()).transform.matrix);
                 } else {
                     reticle.visible = false;
                 }
@@ -177,5 +169,6 @@
     </script>
 </body>
 </html>
+
 
 
